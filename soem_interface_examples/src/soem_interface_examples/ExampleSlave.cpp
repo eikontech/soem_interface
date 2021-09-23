@@ -22,7 +22,6 @@
 
 #include <soem_interface_examples/ExampleSlave.hpp>
 
-
 namespace soem_interface_examples {
 
 ExampleSlave::ExampleSlave(const std::string& name, soem_interface::EthercatBusBase* bus, const uint32_t address) :

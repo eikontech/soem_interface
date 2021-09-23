@@ -36,6 +36,7 @@
 
 namespace soem_interface {
 
+#define UNUSED(x) (void)(x)
 
 /**
  * @brief      Base class for generic ethercat slaves using soem
@@ -117,6 +118,13 @@ class EthercatSlaveBase {
    */
   uint32_t getAddress() const { return address_; }
 
+  /**
+   * @brief      Returns the logger of the slave
+   *
+   * @return     The logger.
+   */
+  rclcpp::Logger get_logger() const { return bus_? bus_->get_logger():rclcpp::get_logger("EthercatSlaveBase");}
+
   /*!
    * Send a writing SDO.
    * @param index          Index of the SDO.
@@ -130,7 +138,7 @@ class EthercatSlaveBase {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     const bool success =  bus_->sendSdoWrite(address_, index, subindex, completeAccess, value);
     if(!success) {
-      MELO_ERROR_STREAM("Error writing SDO.\tAddress: " << address_ << "Index: " << (int)index
+      MELO_ERROR_STREAM(get_logger(), "Error writing SDO.\tAddress: " << address_ << "Index: " << (int)index
                         << "\nSubindex: " << (int)subindex << "\n Complete Access: "
                         << (int)completeAccess << "\nType: " << typeid(value).name());
     }
@@ -150,7 +158,7 @@ class EthercatSlaveBase {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     const bool success = bus_->sendSdoRead(address_, index, subindex, completeAccess, value);
     if(!success) {
-      MELO_ERROR_STREAM("Error reading SDO.\tAddress: " << address_ << "Index: " << (int)index
+      MELO_ERROR_STREAM(get_logger(), "Error reading SDO.\nAddress: " << address_ << "\nIndex: " << (int)index
                         << "\nSubindex: " << (int)subindex << "\n Complete Access: "
                         << (int)completeAccess << "\nType: " << typeid(value).name());
     }
@@ -228,54 +236,65 @@ class EthercatSlaveBase {
   }
 
   virtual bool sendSdoWriteInt8(const uint16_t index, const uint8_t subindex, const bool completeAccess, const int8_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteInt16(const uint16_t index, const uint8_t subindex, const bool completeAccess, const int16_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteInt32(const uint16_t index, const uint8_t subindex, const bool completeAccess, const int32_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteInt64(const uint16_t index, const uint8_t subindex, const bool completeAccess, const int64_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteUInt8(const uint16_t index, const uint8_t subindex, const bool completeAccess, const uint8_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteUInt16(const uint16_t index, const uint8_t subindex, const bool completeAccess, const uint16_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteUInt32(const uint16_t index, const uint8_t subindex, const bool completeAccess, const uint32_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteUInt64(const uint16_t index, const uint8_t subindex, const bool completeAccess, const uint64_t value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteFloat(const uint16_t index, const uint8_t subindex, const bool completeAccess, const float value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteDouble(const uint16_t index, const uint8_t subindex, const bool completeAccess, const double value) {
+    UNUSED(completeAccess);
     return sendSdoWrite(index, subindex, false, value);
   }
 
   virtual bool sendSdoWriteString(const uint16_t index, const uint8_t subindex, const bool completeAccess, const std::string value) {
-      return sendSdoWrite(index, subindex, false, value);
+    UNUSED(completeAccess);
+    return sendSdoWrite(index, subindex, false, value);
   }
 
  protected:
   /**
    * @brief      Prints a warning. Use this method to suppress compiler warnings
    */
-  void printWarnNotImplemented() { MELO_WARN_STREAM("Functionality is not implemented."); }
+  void printWarnNotImplemented() { MELO_WARN_STREAM(bus_->get_logger(), "Functionality is not implemented."); }
 
   // Mutex prohibiting simultaneous access to EtherCAT slave.
   mutable std::recursive_mutex mutex_;

@@ -25,7 +25,8 @@
 
 namespace soem_interface {
 
-EthercatBusBase::EthercatBusBase(const std::string& name) : name_(name), wkc_(0) {
+EthercatBusBase::EthercatBusBase(const std::string& name) : logger_(rclcpp::get_logger("EthercatBusBase."+name)), name_(name), wkc_(0) {
+  
   // Initialize all SOEM context data pointers that are not used with null.
   ecatContext_.elist->head = 0;
   ecatContext_.elist->tail = 0;
@@ -53,10 +54,10 @@ bool EthercatBusBase::busIsAvailable(const std::string& name) {
 }
 
 void EthercatBusBase::printAvailableBusses() {
-  MELO_INFO_STREAM("Available adapters:");
+  MELO_INFO_STREAM(logger_, "Available adapters:");
   ec_adaptert* adapter = ec_find_adapters();
   while (adapter != nullptr) {
-    MELO_INFO_STREAM("- Name: '" << adapter->name << "', description: '" << adapter->desc << "'");
+    MELO_INFO_STREAM(logger_, "- Name: '" << adapter->name << "', description: '" << adapter->desc << "'");
     adapter = adapter->next;
   }
 }
@@ -71,7 +72,7 @@ int EthercatBusBase::getNumberOfSlaves() const {
 bool EthercatBusBase::addSlave(const EthercatSlaveBasePtr& slave) {
   for (const auto& existingSlave : slaves_) {
     if (slave->getAddress() == existingSlave->getAddress()) {
-      MELO_ERROR_STREAM("[" << getName() << "] "
+      MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                             << "Slave '" << existingSlave->getName() << "' and slave '" << slave->getName()
                             << "' have identical addresses (" << slave->getAddress() << ").");
       return false;
@@ -92,13 +93,13 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
    * dedicated NIC selected in the nicdrv.c. It returns >0 if succeeded.
    */
   if (!busIsAvailable()) {
-    MELO_ERROR_STREAM("[" << getName() << "] "
+    MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                           << "Bus is not available.");
     printAvailableBusses();
     return false;
   }
   if (ecx_init(&ecatContext_, name_.c_str()) <= 0) {
-    MELO_ERROR_STREAM("[" << getName() << "] "
+    MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                           << "No socket connection. Execute as root.");
     return false;
   }
@@ -111,19 +112,19 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
       break;
     } else if (retry == ecatConfigMaxRetries_) {
       // Too many failed attempts.
-      MELO_ERROR_STREAM("[" << getName() << "] "
+      MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                             << "No slaves have been found.");
       return false;
     }
     // Sleep and retry.
     soem_interface::threadSleep(ecatConfigRetrySleep_);
-    MELO_INFO_STREAM("No slaves have been found, retrying " << retry + 1 << "/" << ecatConfigMaxRetries_ << " ...");
+    MELO_INFO_STREAM(logger_, "No slaves have been found, retrying " << retry + 1 << "/" << ecatConfigMaxRetries_ << " ...");
   }
 
   // Print the slaves which have been detected.
-  MELO_INFO_STREAM("The following " << getNumberOfSlaves() << " slaves have been found and configured:");
+  MELO_INFO_STREAM(logger_, "The following " << getNumberOfSlaves() << " slaves have been found and configured:");
   for (int slave = 1; slave <= getNumberOfSlaves(); slave++) {
-    MELO_INFO_STREAM("Address: " << slave << " - Name: '" << std::string(ecatContext_.slavelist[slave].name) << "'");
+    MELO_INFO_STREAM(logger_, "Address: " << slave << " - Name: '" << std::string(ecatContext_.slavelist[slave].name) << "'");
   }
 
   // Check if the given slave addresses are valid.
@@ -131,12 +132,12 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
   for (const auto& slave : slaves_) {
     auto address = static_cast<int>(slave->getAddress());
     if (address == 0) {
-      MELO_ERROR_STREAM("[" << getName() << "] "
+      MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                             << "Slave '" << slave->getName() << "': Invalid address " << address << ".");
       slaveAddressesAreOk = false;
     }
     if (address > getNumberOfSlaves()) {
-      MELO_ERROR_STREAM("[" << getName() << "] "
+      MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                             << "Slave '" << slave->getName() << "': Invalid address " << address << ", "
                             << "only " << getNumberOfSlaves() << " slave(s) found.");
       slaveAddressesAreOk = false;
@@ -152,9 +153,14 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
   // Initialize the communication interfaces of all slaves.
   for (auto& slave : slaves_) {
     if (!slave->startup()) {
-      MELO_ERROR_STREAM("[" << getName() << "] "
-                            << "Slave '" << slave->getName() << "' was not initialized successfully.");
+      MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
+                        << "Slave '" << slave->getName() << "' was not initialized successfully.");
       return false;
+    }
+    else
+    {
+      MELO_INFO_STREAM(logger_, "[" << getName() << "] "
+                      << "Slave '" << slave->getName() << "' was initialized successfully.");
     }
   }
 
@@ -169,14 +175,14 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
     for (const auto& slave : slaves_) {
       const EthercatSlaveBase::PdoInfo pdoInfo = slave->getCurrentPdoInfo();
       if (pdoInfo.rxPdoSize_ != ecatContext_.slavelist[slave->getAddress()].Obytes) {
-        MELO_ERROR_STREAM("[" << getName() << "] "
+        MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                               << "RxPDO size mismatch: The slave '" << slave->getName() << "' expects a size of " << pdoInfo.rxPdoSize_
                               << " bytes but the slave found at its address " << slave->getAddress() << " requests "
                               << ecatContext_.slavelist[slave->getAddress()].Obytes << " bytes).");
         ioMapIsOk = false;
       }
       if (pdoInfo.txPdoSize_ != ecatContext_.slavelist[slave->getAddress()].Ibytes) {
-        MELO_ERROR_STREAM("[" << getName() << "] "
+        MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                               << "TxPDO size mismatch: The slave '" << slave->getName() << "' expects a size of " << pdoInfo.txPdoSize_
                               << " bytes but the slave found at its address " << slave->getAddress() << " requests "
                               << ecatContext_.slavelist[slave->getAddress()].Ibytes << " bytes).");
@@ -202,7 +208,7 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
 
 void EthercatBusBase::updateRead() {
   if (!sentProcessData_) {
-    MELO_DEBUG_STREAM("No process data to read.");
+    MELO_DEBUG_STREAM(logger_, "No process data to read.");
     return;
   }
 
@@ -217,12 +223,11 @@ void EthercatBusBase::updateRead() {
   //! Check the working counter.
   if (!workingCounterIsOk()) {
     ++workingCounterTooLowCounter_;
-    if (!busIsOk()) {
-      MELO_WARN_THROTTLE_STREAM(1.0, "Bus is not ok. Too many working counter too low in a row: " << workingCounterTooLowCounter_)
-    }
-    MELO_DEBUG_STREAM("Working counter too low counter: " << workingCounterTooLowCounter_)
-    MELO_WARN_THROTTLE_STREAM(1.0, "Update Read:" << this);
-    MELO_WARN_THROTTLE_STREAM(1.0, "Working counter is too low: " << wkc_.load() << " < " << getExpectedWorkingCounter());
+    if (!busIsOk()) 
+      MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Bus is not ok. Too many working counter too low in a row: " << workingCounterTooLowCounter_);
+    MELO_DEBUG_STREAM(logger_, "Working counter too low counter: " << workingCounterTooLowCounter_);
+    MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Update Read:" << this);
+    MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Working counter is too low: " << wkc_.load() << " < " << getExpectedWorkingCounter());
     return;
   }
   // Reset working counter too low counter.
@@ -236,7 +241,7 @@ void EthercatBusBase::updateRead() {
 
 void EthercatBusBase::updateWrite() {
   if (sentProcessData_) {
-    MELO_DEBUG_STREAM("Sending new process data without reading the previous one.");
+    MELO_DEBUG_STREAM(logger_, "Sending new process data without reading the previous one.");
   }
 
   //! Each slave attached to this bus write its data to the buffer.
@@ -265,7 +270,7 @@ void EthercatBusBase::shutdown() {
 
   // Close the port.
   if (ecatContext_.port != nullptr) {
-    MELO_INFO_STREAM("Closing socket ...");
+    MELO_INFO_STREAM(logger_, "Closing socket ...");
     ecx_close(&ecatContext_);
     // Sleep to make sure the socket is closed, because ecx_close is non-blocking.
     soem_interface::threadSleep(0.5);
@@ -277,13 +282,13 @@ void EthercatBusBase::shutdown() {
 void EthercatBusBase::setState(const uint16_t state, const uint16_t slave) {
   std::lock_guard<std::recursive_mutex> guard(contextMutex_);
   if(!initlialized_) {
-    MELO_ERROR_STREAM("Bus " << name_ << " was not successfully initialized, skipping operation");
+    MELO_ERROR_STREAM(logger_, "Bus " << name_ << " was not successfully initialized, skipping operation");
     return;
   }
   assert(static_cast<int>(slave) <= getNumberOfSlaves());
   ecatContext_.slavelist[slave].state = state;
   ecx_writestate(&ecatContext_, slave);
-  MELO_DEBUG_STREAM("Slave " << slave << ": State " << state << " has been set.");
+  MELO_DEBUG_STREAM(logger_, "Slave " << slave << ": State " << state << " has been set.");
 }
 
 bool EthercatBusBase::waitForState(const uint16_t state, const uint16_t slave, const unsigned int maxRetries, const double retrySleep) {
@@ -291,7 +296,7 @@ bool EthercatBusBase::waitForState(const uint16_t state, const uint16_t slave, c
   std::lock_guard<std::recursive_mutex> guard(contextMutex_);
   for (unsigned int retry = 0; retry <= maxRetries; retry++) {
     if (ecx_statecheck(&ecatContext_, slave, state, static_cast<int>(1e6 * retrySleep)) == state) {
-      MELO_DEBUG_STREAM("Slave " << slave << ": State " << state << " has been reached.");
+      MELO_DEBUG_STREAM(logger_, "Slave " << slave << ": State " << state << " has been reached.");
       return true;
     }
     // TODO: Do this for all states?
@@ -299,7 +304,7 @@ bool EthercatBusBase::waitForState(const uint16_t state, const uint16_t slave, c
     wkc_ = ecx_receive_processdata(&ecatContext_, EC_TIMEOUTRET);
   }
 
-  MELO_WARN_STREAM("Slave " << slave << ": State " << state << " has not been reached.");
+  MELO_WARN_STREAM(logger_, "Slave " << slave << ": State " << state << " has not been reached.");
   return false;
 }
 
@@ -353,7 +358,7 @@ void EthercatBusBase::printALStatus(const uint16_t slave) {
   std::lock_guard<std::recursive_mutex> guard(contextMutex_);
   assert(static_cast<int>(slave) <= getNumberOfSlaves());
 
-  MELO_INFO_STREAM(" slave: " << slave << " alStatusCode: 0x" << std::setfill('0') <<
+  MELO_INFO_STREAM(logger_, " slave: " << slave << " alStatusCode: 0x" << std::setfill('0') <<
                    std::setw(8) << std::hex << ecatContext_.slavelist[slave].ALstatuscode <<
                    " " << ec_ALstatuscode2string(ecatContext_.slavelist[slave].ALstatuscode));
 }
@@ -363,7 +368,7 @@ bool EthercatBusBase::checkForSdoErrors(const uint16_t slave, const uint16_t ind
     ec_errort error;
     if (ecx_poperror(&ecatContext_, &error)) {
       std::string errorStr = getErrorString(error);
-      MELO_ERROR_STREAM(errorStr);
+      MELO_ERROR_STREAM(logger_, errorStr);
       if (error.Slave == slave && error.Index == index) {
         soem_interface::common::MessageLog::insertMessage(message_logger::log::levels::Level::Error, errorStr);
         return true;
@@ -378,13 +383,13 @@ bool EthercatBusBase::workingCounterIsOk() const { return wkc_ >= getExpectedWor
 bool EthercatBusBase::busIsOk() const { return workingCounterTooLowCounter_ < maxWorkingCounterTooLow_; }
 
 void EthercatBusBase::syncDistributedClock0(const uint16_t slave, const bool activate, const double cycleTime, const double cycleShift) {
-  MELO_INFO_STREAM("Bus '" << name_ << "', slave " << slave << ":  " << (activate ? "Activating" : "Deactivating")
+  MELO_INFO_STREAM(logger_, "Bus '" << name_ << "', slave " << slave << ":  " << (activate ? "Activating" : "Deactivating")
                            << " distributed clock synchronization...");
 
   ecx_dcsync0(&ecatContext_, slave, static_cast<uint8_t>(activate), static_cast<uint32_t>(cycleTime * 1e9),
               static_cast<int32_t>(1e9 * cycleShift));
 
-  MELO_INFO_STREAM("Bus '" << name_ << "', slave " << slave << ":  " << (activate ? "Activated" : "Deactivated")
+  MELO_INFO_STREAM(logger_, "Bus '" << name_ << "', slave " << slave << ":  " << (activate ? "Activated" : "Deactivated")
                            << " distributed clock synchronization.");
 }
 
@@ -419,14 +424,14 @@ bool EthercatBusBase::sendSdoRead<std::string>(const uint16_t slave, const uint1
       value = std::string(buffer,size);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM("Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
     }
 
     if (size != (int)expected_size) {
-      MELO_ERROR_STREAM("Slave " << slave << ": Size mismatch (expected " << expected_size << " bytes, read " << size
+      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Size mismatch (expected " << expected_size << " bytes, read " << size
                                  << " bytes) for reading SDO (ID: 0x" << std::setfill('0') << std::setw(4) << std::hex << index
                                  << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -445,7 +450,7 @@ bool EthercatBusBase::sendSdoWrite<std::string>(const uint16_t slave, const uint
         wkc = ecx_SDOwrite(&ecatContext_, slave, index, subindex, static_cast<boolean>(completeAccess), size, &dataPtr, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-        MELO_ERROR_STREAM("Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
+        MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
                                    << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                    << static_cast<uint16_t>(subindex) << ").");
         return false;

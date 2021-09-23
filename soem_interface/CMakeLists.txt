@@ -18,58 +18,76 @@
 # You should have received a copy of the GNU General Public License
 # along with the soem_interface.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(soem_interface)
+
+# Add support for C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+find_package(ament_cmake REQUIRED)
+
+find_package(rclcpp REQUIRED)
+find_package(message_logger REQUIRED)
+find_package(soem_ros2 REQUIRED)
+
+set(PACKAGE_DEPENDENCIES message_logger soem_ros2)
+
+set(INCLUDE_DIRS include 
+  ${ament_cmake_INCLUDE_DIRS}
+  ${message_logger_INCLUDE_DIRS}
+  ${soem_ros2_INCLUDE_DIRS})
+include_directories(${INCLUDE_DIRS})
+
+message(STATUS "INCLUDE_DIRS - ${INCLUDE_DIRS}")
+
+set(LIBRARY_DIRS ${ament_cmake_LIBRARY_DIRS}
+  ${message_logger_LIBRARY_DIRS}
+  ${soem_ros2_LIBRARY_DIRS})
+link_directories(${LIBRARY_DIRS})
+
+message(STATUS "LIBRARY_DIRS - ${LIBRARY_DIRS}")
+
+set(LIBS ${ament_cmake_LIBRARIES} ${message_logger_LIBRARIES} ${soem_ros2_LIBRARIES})
+
+message(STATUS "LIBS - ${LIBS}")
 
 add_definitions(-std=c++14 -Wall -Werror)
 add_definitions(-DMELO_USE_COUT)
 
-set(PACKAGE_DEPENDENCIES
-  message_logger
-  soem_rsl
-)
-
-find_package(catkin REQUIRED
-  COMPONENTS
-    ${PACKAGE_DEPENDENCIES}
-)
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-  LIBRARIES
-    ${PROJECT_NAME}
-  CATKIN_DEPENDS
-    ${PACKAGE_DEPENDENCIES}
-)
-
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
+  ${soem_ros2_INCLUDE_DIRS}
+  ${message_logger_INCLUDE_DIRS}
 )
 
-add_library(
-  ${PROJECT_NAME}
+add_library(${PROJECT_NAME} 
   src/${PROJECT_NAME}/common/ThreadSleep.cpp
-  src/${PROJECT_NAME}/common/Macros.cpp
-  src/${PROJECT_NAME}/EthercatSlaveBase.cpp
+  src/${PROJECT_NAME}/common/Macros.cpp src/${PROJECT_NAME}/EthercatSlaveBase.cpp
   src/${PROJECT_NAME}/EthercatBusManagerBase.cpp
-  src/${PROJECT_NAME}/EthercatBusBase.cpp
-)
-add_dependencies(
+  src/${PROJECT_NAME}/EthercatBusBase.cpp)
+target_link_libraries(${PROJECT_NAME} ${LIBS})
+
+ament_target_dependencies(
   ${PROJECT_NAME}
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+  rclcpp
+  message_logger
+  soem_ros2)
 
 install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+  ARCHIVE
+  DESTINATION lib
+  LIBRARY
+  DESTINATION lib
+  RUNTIME
+  DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
+  DESTINATION include/${PROJECT_NAME})
+
+ament_export_dependencies(ament_cmake)
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(${INCLUDE_DIRS})
+ament_export_libraries(${PROJECT_NAME} ${LIBS})
+
+ament_package()

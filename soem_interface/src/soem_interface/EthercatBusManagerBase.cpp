@@ -23,11 +23,15 @@
 //  anydrive
 #include "soem_interface/EthercatBusManagerBase.hpp"
 
+// ros2
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/logger.hpp>
+
 namespace soem_interface {
 
 bool EthercatBusManagerBase::addEthercatBus(soem_interface::EthercatBusBase* bus) {
   if (bus == nullptr) {
-    MELO_ERROR_STREAM("[RokubiminiEthercatBusManager::addEthercatBus] bus is nullptr")
+    MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), "[RokubiminiEthercatBusManager::addEthercatBus] bus is nullptr")
     return false;
   }
 
@@ -43,7 +47,7 @@ bool EthercatBusManagerBase::addEthercatBus(soem_interface::EthercatBusBase* bus
 
 bool EthercatBusManagerBase::addEthercatBus(std::unique_ptr<soem_interface::EthercatBusBase> bus) {
   if (bus == nullptr) {
-    MELO_ERROR_STREAM("[RokubiminiEthercatBusManager::addEthercatBus] bus is nullptr")
+    MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), "[RokubiminiEthercatBusManager::addEthercatBus] bus is nullptr")
     return false;
   }
 
@@ -110,7 +114,7 @@ bool EthercatBusManagerBase::startupCommunication() {
   std::lock_guard<std::recursive_mutex> lock(busMutex_);
   for (auto& bus : buses_) {
     if (!bus.second->startup()) {
-      MELO_ERROR_STREAM("Failed to startup bus '" << bus.first << "'.");
+      MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), "Failed to startup bus '" << bus.first << "'.");
       return false;
     }
   }

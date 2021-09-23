@@ -31,13 +31,19 @@
 #include <chrono>
 
 // soem
-#include <soem/soem/ethercat.h>
+#include <soem_ros2/soem.h>
 
 #include <message_logger/message_logger.hpp>
 
 // soem_interface
 #include <soem_interface/common/Macros.hpp>
 #include <soem_interface/common/ThreadSleep.hpp>
+
+// ros2
+#include <rclcpp/logger.hpp>
+
+// std
+#include <iomanip>
 
 namespace soem_interface {
 
@@ -226,7 +232,7 @@ class EthercatBusBase {
       wkc = ecx_SDOwrite(&ecatContext_, slave, index, subindex, static_cast<boolean>(completeAccess), size, &valueCopy, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM("Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -253,13 +259,13 @@ class EthercatBusBase {
       wkc = ecx_SDOread(&ecatContext_, slave, index, subindex, static_cast<boolean>(completeAccess), &size, &value, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM("Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
     }
     if (size != sizeof(Value)) {
-      MELO_ERROR_STREAM("Slave " << slave << ": Size mismatch (expected " << sizeof(Value) << " bytes, read " << size
+      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Size mismatch (expected " << sizeof(Value) << " bytes, read " << size
                                  << " bytes) for reading SDO (ID: 0x" << std::setfill('0') << std::setw(4) << std::hex << index
                                  << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -285,15 +291,15 @@ class EthercatBusBase {
       wkc = ecx_SDOread(&ecatContext_, slave, index, subindex, static_cast<boolean>(false), &length, &buffer, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM("Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
     }
     value.clear();
     for (int i = 0; i < length; ++i) {
-      MELO_DEBUG_STREAM("Char      : " << buffer[i])
-      MELO_DEBUG_STREAM("Char (int): " << static_cast<unsigned int>(buffer[i]))
+      MELO_DEBUG_STREAM(logger_, "Char      : " << buffer[i])
+      MELO_DEBUG_STREAM(logger_, "Char (int): " << static_cast<unsigned int>(buffer[i]))
       if (buffer[i] != 0x0) {
         value += buffer[i];
       } else {
@@ -348,7 +354,12 @@ class EthercatBusBase {
     memcpy(ecatContext_.slavelist[slave].outputs, &rxPdo, sizeof(RxPdo));
   }
 
+  rclcpp::Logger get_logger() const {return logger_;}
+
  protected:
+  //! Logger
+  rclcpp::Logger logger_;
+
   //! Name of the bus.
   std::string name_;
 
@@ -439,7 +450,9 @@ class EthercatBusBase {
                                &ecatPdoDesc_[0],
                                &ecatSm_,
                                &ecatFmmu_,
-                               nullptr};
+                               nullptr,
+                               nullptr,
+                               0};
 };
 
 using EthercatBusBasePtr = std::shared_ptr<EthercatBusBase>;

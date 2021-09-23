@@ -23,13 +23,20 @@
 #include <soem_interface_examples/ExampleSlave.hpp>
 #include <soem_interface/EthercatBusBase.hpp>
 
+#include <memory>
+
+#define UNUSED(x) (void)(x)
+
 // This shows a minimal example on how to use the soem_interface library. 
 // Keep in mind that this is non-working example code, with only minimal error handling
 
 int main(int argc, char** argv) {
-  const std::string busName = "eth1";
-  const std::string slaveName = "ExampleSlave";
-  const uint32_t slaveAddress = 0;
+  UNUSED(argc);
+  UNUSED(argv);
+
+  const std::string busName = "enp4s0";
+  const std::string slaveName = "ZeroErr Driver";
+  const uint32_t slaveAddress = 1;
 
   std::unique_ptr<soem_interface::EthercatBusBase> bus = std::make_unique<soem_interface::EthercatBusBase> (
     busName);

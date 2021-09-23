@@ -159,6 +159,9 @@ class EthercatBusManagerBase {
   // Mutex prohibiting simultaneous access to EtherCAT bus manager.
   std::recursive_mutex busMutex_;
   BusMap buses_;
+    
+  //! Logger
+  rclcpp::Logger logger_;
 };
 
 using EthercatBusManagerBasePtr = std::shared_ptr<EthercatBusManagerBase>;
