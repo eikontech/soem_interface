@@ -1,0 +1,3 @@
+[submodule "soem_ros2/SOEM"]
+	path = soem_ros2/SOEM
+	url = https://github.com/OpenEtherCATsociety/SOEM.git
