@@ -27,8 +27,9 @@
 
 #define UNUSED(x) (void)(x)
 
-// This shows a minimal example on how to use the soem_interface library. 
-// Keep in mind that this is non-working example code, with only minimal error handling
+ #include <iostream>
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
 
 int main(int argc, char** argv) {
   UNUSED(argc);
@@ -46,7 +47,14 @@ int main(int argc, char** argv) {
 
   bus->addSlave(slave);
   bus->startup();
-  bus->setState(EC_STATE_OPERATIONAL);
+  bus->setState(EC_STATE_PRE_OP, slaveAddress);
+  std::this_thread::sleep_for(std::chrono::milliseconds(32));
+  
+  bus->setState(EC_STATE_SAFE_OP, slaveAddress);
+  std::this_thread::sleep_for(std::chrono::milliseconds(32));
+  
+  bus->setState(EC_STATE_OPERATIONAL, slaveAddress);
+  std::this_thread::sleep_for(std::chrono::milliseconds(32));
 
   if(!bus->waitForState(EC_STATE_OPERATIONAL, slaveAddress)) {
     // Something is wrong

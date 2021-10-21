@@ -22,6 +22,9 @@
 
 #include <soem_interface_examples/ExampleSlave.hpp>
 
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+
 namespace soem_interface_examples {
 
 ExampleSlave::ExampleSlave(const std::string& name, soem_interface::EthercatBusBase* bus, const uint32_t address) :
@@ -42,10 +45,18 @@ bool ExampleSlave::startup() {
 
 void ExampleSlave::updateRead() {
   bus_->readTxPdo(address_, reading_);
+  std::cout << "Reading: " << sizeof(reading_) << std::endl;
+  std::cout << "Status 0x" << std::hex << reading_.status << std::endl;
+  std::cout << "Position " << reading_.position << std::endl;
+  std::cout << "Input " << reading_.input << std::endl;
 }
 
 void ExampleSlave::updateWrite() {
   bus_->writeRxPdo(address_, command_);
+  std::cout << "Write Command: " << sizeof(command_) << std::endl;
+  std::cout << "Controlword 0x" << std::hex << command_.controlword << std::endl;
+  std::cout << "Position " << command_.target_position << std::endl;
+  std::cout << "Output " << command_.output << std::endl;
 }
 
 void ExampleSlave::shutdown() {
