@@ -98,17 +98,25 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
     printAvailableBusses();
     return false;
   }
+  else
+    MELO_INFO_STREAM(logger_, "[" << getName() << "] "
+                          << "Bus is available.");
   if (ecx_init(&ecatContext_, name_.c_str()) <= 0) {
     MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                           << "No socket connection. Execute as root.");
     return false;
   }
+  else
+    MELO_INFO_STREAM(logger_, "[" << getName() << "] "
+                          << "Socket is connected.");
 
   // Initialize SOEM.
   // Note: ecx_config_init(..) requests the slaves to go to PRE-OP.
   for (unsigned int retry = 0; retry <= ecatConfigMaxRetries_; retry++) {
     if (ecx_config_init(&ecatContext_, FALSE) > 0) {
       // Successful initialization.
+      MELO_INFO_STREAM(logger_, "[" << getName() << "] "
+                            << "Slaves have been found.");
       break;
     } else if (retry == ecatConfigMaxRetries_) {
       // Too many failed attempts.
@@ -136,12 +144,16 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
                             << "Slave '" << slave->getName() << "': Invalid address " << address << ".");
       slaveAddressesAreOk = false;
     }
-    if (address > getNumberOfSlaves()) {
+    else if (address > getNumberOfSlaves()) {
       MELO_ERROR_STREAM(logger_, "[" << getName() << "] "
                             << "Slave '" << slave->getName() << "': Invalid address " << address << ", "
                             << "only " << getNumberOfSlaves() << " slave(s) found.");
       slaveAddressesAreOk = false;
     }
+    else 
+      MELO_INFO_STREAM(logger_, "[" << getName() << "] "
+                            << "Slave '" << slave->getName() << "': Valid address " << address << ", "
+                            << getNumberOfSlaves() << " slave(s) found.");
   }
   if (!slaveAddressesAreOk) {
     return false;
@@ -158,10 +170,8 @@ bool EthercatBusBase::startup(const bool sizeCheck) {
       return false;
     }
     else
-    {
       MELO_INFO_STREAM(logger_, "[" << getName() << "] "
                       << "Slave '" << slave->getName() << "' was initialized successfully.");
-    }
   }
 
   // Set up the communication IO mapping.
@@ -230,6 +240,8 @@ void EthercatBusBase::updateRead() {
     MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Working counter is too low: " << wkc_.load() << " < " << getExpectedWorkingCounter());
     return;
   }
+  // MELO_DEBUG_STREAM(logger_, "Working counter ok: " << wkc_);
+  
   // Reset working counter too low counter.
   workingCounterTooLowCounter_ = 0;
 
@@ -288,7 +300,12 @@ void EthercatBusBase::setState(const uint16_t state, const uint16_t slave) {
   assert(static_cast<int>(slave) <= getNumberOfSlaves());
   ecatContext_.slavelist[slave].state = state;
   ecx_writestate(&ecatContext_, slave);
-  MELO_DEBUG_STREAM(logger_, "Slave " << slave << ": State " << state << " has been set.");
+  if (ecx_statecheck(&ecatContext_, slave, state, EC_TIMEOUTSTATE) == state) {
+      MELO_DEBUG_STREAM(logger_, "Slave " << slave << ": State " << state << " has been set.");
+  }
+  else
+    MELO_WARN_STREAM(logger_, "Slave " << slave << ": State " << state << " has NOT been set.");
+
 }
 
 bool EthercatBusBase::waitForState(const uint16_t state, const uint16_t slave, const unsigned int maxRetries, const double retrySleep) {
@@ -407,6 +424,10 @@ EthercatBusBase::PdoSizePair EthercatBusBase::getHardwarePdoSizes(const uint16_t
   return std::make_pair(ecatContext_.slavelist[slave].Obytes, ecatContext_.slavelist[slave].Ibytes);
 }
 
+void EthercatBusBase::disableCompleteAccess(const uint16_t slave) {
+  ecatContext_.slavelist[slave].CoEdetails ^= ECT_COEDET_SDOCA;
+}
+
 template<>
 bool EthercatBusBase::sendSdoRead<std::string>(const uint16_t slave, const uint16_t index, const uint8_t subindex, const bool completeAccess, std::string& value) {
     assert(static_cast<int>(slave) <= getNumberOfSlaves());
@@ -424,14 +445,14 @@ bool EthercatBusBase::sendSdoRead<std::string>(const uint16_t slave, const uint1
       value = std::string(buffer,size);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
     }
 
     if (size != (int)expected_size) {
-      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Size mismatch (expected " << expected_size << " bytes, read " << size
+      MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Size mismatch (expected " << expected_size << " bytes, read " << size
                                  << " bytes) for reading SDO (ID: 0x" << std::setfill('0') << std::setw(4) << std::hex << index
                                  << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -450,7 +471,7 @@ bool EthercatBusBase::sendSdoWrite<std::string>(const uint16_t slave, const uint
         wkc = ecx_SDOwrite(&ecatContext_, slave, index, subindex, static_cast<boolean>(completeAccess), size, &dataPtr, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-        MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
+        MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
                                    << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                    << static_cast<uint16_t>(subindex) << ").");
         return false;

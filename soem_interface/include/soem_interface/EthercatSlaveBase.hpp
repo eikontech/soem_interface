@@ -138,7 +138,7 @@ class EthercatSlaveBase {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     const bool success =  bus_->sendSdoWrite(address_, index, subindex, completeAccess, value);
     if(!success) {
-      MELO_ERROR_STREAM(get_logger(), "Error writing SDO.\tAddress: " << address_ << "Index: " << (int)index
+      MELO_ERROR_STREAM(get_logger(), "Error writing SDO.\nAddress: " << address_ << "\nIndex: " << std::hex << (int)index
                         << "\nSubindex: " << (int)subindex << "\n Complete Access: "
                         << (int)completeAccess << "\nType: " << typeid(value).name());
     }
@@ -158,7 +158,7 @@ class EthercatSlaveBase {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     const bool success = bus_->sendSdoRead(address_, index, subindex, completeAccess, value);
     if(!success) {
-      MELO_ERROR_STREAM(get_logger(), "Error reading SDO.\nAddress: " << address_ << "\nIndex: " << (int)index
+      MELO_ERROR_STREAM(get_logger(), "[" << __FUNCTION__ << "] Error reading SDO.\nAddress: " << address_ << "\nIndex: " << std::hex << (int)index << std::dec
                         << "\nSubindex: " << (int)subindex << "\n Complete Access: "
                         << (int)completeAccess << "\nType: " << typeid(value).name());
     }

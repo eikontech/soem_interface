@@ -192,6 +192,8 @@ class EthercatBusBase {
    */
   void syncDistributedClock0(const uint16_t slave, const bool activate, const double cycleTime, const double cycleShift);
 
+  void disableCompleteAccess(const uint16_t slave) ;
+
   /*!
    * Returns a map of the actually requested PDO sizes (Rx & Tx) This is useful
    * for slaves where the PDO size at startup is unknown This method shall be
@@ -232,7 +234,7 @@ class EthercatBusBase {
       wkc = ecx_SDOwrite(&ecatContext_, slave, index, subindex, static_cast<boolean>(completeAccess), size, &valueCopy, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Working counter too low (" << wkc << ") for writing SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -259,13 +261,13 @@ class EthercatBusBase {
       wkc = ecx_SDOread(&ecatContext_, slave, index, subindex, static_cast<boolean>(completeAccess), &size, &value, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
     }
     if (size != sizeof(Value)) {
-      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Size mismatch (expected " << sizeof(Value) << " bytes, read " << size
+      MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Size mismatch (expected " << sizeof(Value) << " bytes, read " << size
                                  << " bytes) for reading SDO (ID: 0x" << std::setfill('0') << std::setw(4) << std::hex << index
                                  << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -291,7 +293,7 @@ class EthercatBusBase {
       wkc = ecx_SDOread(&ecatContext_, slave, index, subindex, static_cast<boolean>(false), &length, &buffer, EC_TIMEOUTRXM);
     }
     if (wkc <= 0) {
-      MELO_ERROR_STREAM(logger_, "Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
+      MELO_ERROR_STREAM(logger_, "[" << __FUNCTION__ << "] Slave " << slave << ": Working counter too low (" << wkc << ") for reading SDO (ID: 0x" << std::setfill('0')
                                  << std::setw(4) << std::hex << index << ", SID 0x" << std::setfill('0') << std::setw(2) << std::hex
                                  << static_cast<uint16_t>(subindex) << ").");
       return false;
@@ -337,7 +339,8 @@ class EthercatBusBase {
   void readTxPdo(const uint16_t slave, TxPdo& txPdo) const {
     assert(static_cast<int>(slave) <= getNumberOfSlaves());
     std::lock_guard<std::recursive_mutex> guard(contextMutex_);
-    assert(sizeof(TxPdo) == ecatContext_.slavelist[slave].Ibytes);
+    MELO_DEBUG_STREAM(logger_, "sizeof(TxPdo)      : " << sizeof(TxPdo) << " ecatContext_.slavelist[" << slave << "].Ibytes : " << ecatContext_.slavelist[slave].Ibytes);
+    // assert(sizeof(TxPdo) == ecatContext_.slavelist[slave].Ibytes);
     memcpy(&txPdo, ecatContext_.slavelist[slave].inputs, sizeof(TxPdo));
   }
 
@@ -350,7 +353,8 @@ class EthercatBusBase {
   void writeRxPdo(const uint16_t slave, const RxPdo& rxPdo) {
     assert(static_cast<int>(slave) <= getNumberOfSlaves());
     std::lock_guard<std::recursive_mutex> guard(contextMutex_);
-    assert(sizeof(RxPdo) == ecatContext_.slavelist[slave].Obytes);
+    MELO_DEBUG_STREAM(logger_, "sizeof(RxPdo)      : " << sizeof(RxPdo) << " ecatContext_.slavelist[" << slave << "].Obytes : " << ecatContext_.slavelist[slave].Obytes);
+    // assert(sizeof(RxPdo) == ecatContext_.slavelist[slave].Obytes);
     memcpy(ecatContext_.slavelist[slave].outputs, &rxPdo, sizeof(RxPdo));
   }
 

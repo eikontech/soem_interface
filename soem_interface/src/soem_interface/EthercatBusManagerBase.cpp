@@ -31,7 +31,7 @@ namespace soem_interface {
 
 bool EthercatBusManagerBase::addEthercatBus(soem_interface::EthercatBusBase* bus) {
   if (bus == nullptr) {
-    MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), "[RokubiminiEthercatBusManager::addEthercatBus] bus is nullptr")
+    MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), __FUNCTION__ << " bus is nullptr!");
     return false;
   }
 
@@ -47,7 +47,7 @@ bool EthercatBusManagerBase::addEthercatBus(soem_interface::EthercatBusBase* bus
 
 bool EthercatBusManagerBase::addEthercatBus(std::unique_ptr<soem_interface::EthercatBusBase> bus) {
   if (bus == nullptr) {
-    MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), "[RokubiminiEthercatBusManager::addEthercatBus] bus is nullptr")
+    MELO_ERROR_STREAM(rclcpp::get_logger("EthercatBusManagerBase"), __FUNCTION__ << " bus is nullptr!");
     return false;
   }
 
