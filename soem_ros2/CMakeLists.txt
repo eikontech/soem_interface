@@ -45,6 +45,8 @@ ament_export_include_directories(include)
 # Thus, we add -fPIC here.
 # This allows us to still include this in any shared libraries we create.
 add_compile_options(-fPIC)
+# set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # removed any pre-defined `WIN32_LEAN_AND_MEAN`.
 # Otherwise, many symbols will be reported as missing.
 remove_definitions(-DWIN32_LEAN_AND_MEAN)
