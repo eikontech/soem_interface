@@ -62,11 +62,13 @@ include_directories(
   ${message_logger_INCLUDE_DIRS}
 )
 
-add_library(${PROJECT_NAME} 
+add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/common/ThreadSleep.cpp
   src/${PROJECT_NAME}/common/Macros.cpp src/${PROJECT_NAME}/EthercatSlaveBase.cpp
   src/${PROJECT_NAME}/EthercatBusManagerBase.cpp
   src/${PROJECT_NAME}/EthercatBusBase.cpp)
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_link_libraries(${PROJECT_NAME} ${LIBS})
 
 ament_target_dependencies(
