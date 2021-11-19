@@ -128,6 +128,8 @@ class EthercatBusBase {
    */
   bool startup(const bool sizeCheck = true);
 
+  void ecatCheck();
+
   /*!
    * Update step 1: Read all PDOs.
    */
@@ -191,6 +193,8 @@ class EthercatBusBase {
    * @param[in]  timeStep  The time step
    */
   void syncDistributedClock0(const uint16_t slave, const bool activate, const double cycleTime, const double cycleShift);
+  void syncDistributedClock01(const uint16_t slave, const bool activate, const double cycleTime0, const double cycleTime1, const double cycleShift);
+
 
   void disableCompleteAccess(const uint16_t slave) ;
 
@@ -340,7 +344,7 @@ class EthercatBusBase {
     assert(static_cast<int>(slave) <= getNumberOfSlaves());
     std::lock_guard<std::recursive_mutex> guard(contextMutex_);
     MELO_DEBUG_STREAM(logger_, "sizeof(TxPdo)      : " << sizeof(TxPdo) << " ecatContext_.slavelist[" << slave << "].Ibytes : " << ecatContext_.slavelist[slave].Ibytes);
-    // assert(sizeof(TxPdo) == ecatContext_.slavelist[slave].Ibytes);
+    assert(sizeof(TxPdo) == ecatContext_.slavelist[slave].Ibytes);
     memcpy(&txPdo, ecatContext_.slavelist[slave].inputs, sizeof(TxPdo));
   }
 
@@ -354,7 +358,7 @@ class EthercatBusBase {
     assert(static_cast<int>(slave) <= getNumberOfSlaves());
     std::lock_guard<std::recursive_mutex> guard(contextMutex_);
     MELO_DEBUG_STREAM(logger_, "sizeof(RxPdo)      : " << sizeof(RxPdo) << " ecatContext_.slavelist[" << slave << "].Obytes : " << ecatContext_.slavelist[slave].Obytes);
-    // assert(sizeof(RxPdo) == ecatContext_.slavelist[slave].Obytes);
+    assert(sizeof(RxPdo) == ecatContext_.slavelist[slave].Obytes);
     memcpy(ecatContext_.slavelist[slave].outputs, &rxPdo, sizeof(RxPdo));
   }
 

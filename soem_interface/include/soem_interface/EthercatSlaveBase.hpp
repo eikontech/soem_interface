@@ -77,6 +77,9 @@ class EthercatSlaveBase {
    */
   virtual bool startup() = 0;
 
+  virtual void autoConfigurePdoSizes() = 0;
+  virtual void enableDC() = 0;
+
   /**
    * @brief      Called during reading the ethercat bus. Use this method to
    *             extract readings from the ethercat bus buffer
