@@ -352,8 +352,8 @@ namespace soem_interface
       ++workingCounterTooLowCounter_;
       if (!busIsOk())
         MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Bus is not ok. Too many working counter too low in a row: " << workingCounterTooLowCounter_);
-      MELO_DEBUG_STREAM(logger_, "Working counter too low counter: " << workingCounterTooLowCounter_);
-      MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Update Read:" << this);
+      // MELO_DEBUG_STREAM(logger_, "Working counter too low counter: " << workingCounterTooLowCounter_);
+      MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Update Read:" << this->getName());
       MELO_WARN_THROTTLE_STREAM(logger_, 1.0, "Working counter is too low: " << wkc_.load() << " < " << getExpectedWorkingCounter());
       return;
     }
