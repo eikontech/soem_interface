@@ -281,13 +281,14 @@ namespace soem_interface
           ecatContext_.grouplist[slave].docheckstate = true;
           if (ecatContext_.slavelist[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
           {
-            printf("ERROR : slave %d is in SAFE_OP + ERROR, attempting ack.\n", slave);
+            MELO_ERROR_STREAM(logger_, "ERROR : slave " << slave << " is in SAFE_OP + ERROR, attempting ack.");
             ecatContext_.slavelist[slave].state = (EC_STATE_SAFE_OP + EC_STATE_ACK);
             ecx_writestate(&ecatContext_, slave);
           }
           else if (ecatContext_.slavelist[slave].state == EC_STATE_SAFE_OP)
           {
-            printf("WARNING : slave %d is in SAFE_OP, change to OPERATIONAL.\n", slave);
+            MELO_WARN_STREAM(logger_, "WARNING : slave " << slave << " is in SAFE_OP, change to OPERATIONAL.");
+            // printf("WARNING : slave %d is in SAFE_OP, change to OPERATIONAL.\n", slave);
             ecatContext_.slavelist[slave].state = EC_STATE_OPERATIONAL;
             ecx_writestate(&ecatContext_, slave);
           }
@@ -296,7 +297,8 @@ namespace soem_interface
             if (ecx_reconfig_slave(&ecatContext_, slave, EC_TIMEOUTRET3))
             {
               ecatContext_.slavelist[slave].islost = FALSE;
-              printf("MESSAGE : slave %d reconfigured\n", slave);
+              MELO_INFO_STREAM(logger_, "MESSAGE : slave "<< slave << " reconfigured");
+              // printf("MESSAGE : slave %d reconfigured\n", slave);
             }
           }
           else if (!ecatContext_.slavelist[slave].islost)
@@ -306,7 +308,8 @@ namespace soem_interface
             if (ecatContext_.slavelist[slave].state == EC_STATE_NONE)
             {
               ecatContext_.slavelist[slave].islost = TRUE;
-              printf("ERROR : slave %d lost\n", slave);
+              MELO_ERROR_STREAM(logger_, "ERROR : slave " << slave << " lost");
+              // printf("ERROR : slave %d lost\n", slave);
             }
           }
         }
@@ -317,13 +320,15 @@ namespace soem_interface
             if (ecx_recover_slave(&ecatContext_, slave, EC_TIMEOUTRET3))
             {
               ecatContext_.slavelist[slave].islost = FALSE;
-              printf("MESSAGE : slave %d recovered\n", slave);
+              MELO_INFO_STREAM(logger_, "MESSAGE : slave "<< slave << " recovered");
+              // printf("MESSAGE : slave %d recovered\n", slave);
             }
           }
           else
           {
             ecatContext_.slavelist[slave].islost = FALSE;
-            printf("MESSAGE : slave %d found\n", slave);
+              MELO_INFO_STREAM(logger_, "MESSAGE : slave "<< slave << " found");
+            // printf("MESSAGE : slave %d found\n", slave);
           }
         }
       }
