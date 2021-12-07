@@ -272,6 +272,7 @@ namespace soem_interface
     if (!workingCounterIsOk())
     {
       /* one ore more slaves are not responding */
+      std::lock_guard<std::recursive_mutex> guard(contextMutex_);
       ecx_readstate(&ecatContext_);
       for (int slave = 1; slave <= getNumberOfSlaves(); slave++)
       {
