@@ -65,6 +65,9 @@ public:
   void updateWrite() override;
   void shutdown() override;
 
+  virtual void autoConfigurePdoSizes() override {return;};
+  virtual void enableDC() override {return;};
+
   PdoInfo getCurrentPdoInfo() const override {
     return pdoInfo_;
   }
